@@ -1,0 +1,52 @@
+# Environment and secrets
+.env
+.evn
+*.env
+backend/.env
+backend/.evn
+*.key
+*.pem
+
+# Python virtual environment
+.venv/
+venv/
+env/
+ENV/
+*.py[cod]
+*$py.class
+__pycache__/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+emr.db
+backend/emr.db
+
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing & Cache
+.pytest_cache/
+backend/.pytest_cache/
+.coverage
+htmlcov/
+*.xml
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
