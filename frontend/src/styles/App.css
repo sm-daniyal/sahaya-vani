@@ -131,6 +131,17 @@ html, body {
   animation: pulse-dot 2s infinite;
 }
 
+.gnani-pill {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.dot-gnani {
+  background: #16a34a;
+  box-shadow: 0 0 8px rgba(22, 163, 74, 0.4);
+}
+
 .session-pill code {
   color: var(--text-main);
   font-weight: 700;

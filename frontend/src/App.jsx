@@ -124,13 +124,18 @@ export default function App() {
         </div>
 
         <div className="header-meta-group">
+          <div className="meta-pill gnani-pill">
+            <span className="meta-dot dot-gnani" />
+            <span className="meta-text">Gnani AI: Prisma v2.5 · Evon v3.3 · Timbre v2.5</span>
+          </div>
+
           <div className="meta-pill">
             <span className="meta-dot dot-live" />
             <span className="meta-text">Bilingual: Kannada · Kanglish</span>
           </div>
 
           <div className="meta-pill">
-            <span className="meta-text">Telephony: 16 kHz WebRTC</span>
+            <span className="meta-text">Telephony: 16 kHz WebRTC VAD</span>
           </div>
 
           {sessionId && (
@@ -168,7 +173,7 @@ export default function App() {
             <IconBot className="w-5 h-5 text-blue" />
           </div>
           <div>
-            <div className="stat-value">450 ms</div>
+            <div className="stat-value">550 ms</div>
             <div className="stat-label">VAD Turn-Taking Response Window</div>
           </div>
         </div>
