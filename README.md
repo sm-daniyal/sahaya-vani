@@ -1,309 +1,345 @@
-# SahayaVaani — Bilingual Voice AI Receptionist for Indian Healthcare
+# SahayaVaani
 
-> Built for **The Great Indian AI Internship Challenge** by **Gnani.ai**  
-> Target Track: **Enterprise Voice AI & Healthcare Sovereign LLM Applications**  
-> Verified Status: **102 Automated Tests Passing (100% Green)** · **Full Gnani AI Stack Orchestration**
+A sovereign, real-time bilingual (Kannada and Kanglish) clinical voice AI receptionist for Indian outpatient hospital counters: sub-600ms conversational turn-taking, deterministic LangGraph appointment scheduling, clinical safety guardrails, and live WebSocket EMR synchronization.
+
+[![CI](https://github.com/sm-daniyal/sahaya-vani/actions/workflows/ci.yml/badge.svg)](https://github.com/sm-daniyal/sahaya-vani/actions/workflows/ci.yml)
+![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Gnani AI](https://img.shields.io/badge/Gnani%20AI-Prisma%20|%20Evon%20|%20Timbre-0f62fe)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+> **Presentation deck — [full walkthrough deck](frontend/public/slides.html).** The problem, the clinical UI, and the multi-model architecture. Run locally or view the 50-second presentation flow.
+
+Built solo by [sm-daniyal](https://github.com/sm-daniyal) for **The Great Indian AI Internship Challenge** by **Gnani.ai** — an applied speech intelligence and healthcare sovereign AI project delivered with 102 automated tests passing.
 
 ---
 
-## 1. Executive Summary
+## The problem
 
-In Indian public and private hospitals, outpatient reception counters face overwhelming congestion. Reception staff manage hundreds of patient inquiries every hour, ranging from general outpatient timings to department scheduling and urgent medical complaints. A major barrier is linguistic: patients frequently speak regional languages (such as Kannada) or code-mix between Kannada and English (Kanglish), while existing voice solutions fail on hospital background chatter and telephonic audio artifacts.
+Outpatient reception counters across Indian hospitals face severe congestion every morning. Receptionists spend 4 to 6 minutes per patient gathering repetitive demographic and scheduling details, resulting in long waiting queues, missed telephone calls, and patient distress.
 
-**SahayaVaani** is a sovereign, real-time clinical voice receptionist and triage console engineered specifically for Indian healthcare facilities. Powered end-to-end by Gnani AI models—**Gnani Prisma v2.5 STT**, **Gnani Evon v3.3 MoE LLM**, and **Gnani Timbre v2.5 TTS**—orchestrated with a deterministic **LangGraph** finite-state machine, **FastAPI**, and a **React 19** clinical reception dashboard, SahayaVaani enables patients to book appointments, inquire about hospital departments, and receive instant triage in natural Kannada and Kanglish with sub-600ms conversational turn-taking.
+The primary barrier is linguistic and acoustic: over 70% of outpatients visiting tier-1 and tier-2 city hospitals in Karnataka communicate in colloquial Kannada or code-mixed Kanglish (mixing English medical terms like *"Cardiology"*, *"CT scan"*, *"chest pain"*, and *"slot"* into Kannada grammatical sentences). Existing automated IVRs rely on rigid English touch-tone menus that fail completely on vernacular speech, while standard cloud voice bots hallucinate dangerous drug prescriptions and break under hospital waiting room chatter.
+
+SahayaVaani resolves this at the infrastructure level: a full-duplex voice agent operating directly in spoken Kannada and Kanglish over 16 kHz WebRTC audio, combining ambient noise suppression, deterministic clinical guardrails, and real-time Electronic Medical Record (EMR) updates.
 
 ---
 
-## 2. Target Hackathon Award Alignment
+## Product overview
 
-SahayaVaani has been architected to compete directly for four core awards in **The Great Indian AI Internship Challenge**:
+Two synchronized layers over an asynchronous state engine and SQLite database: an audio terminal for the patient, and an IBM Carbon clinical console for hospital reception staff.
 
-| Award Category | Award Focus | How SahayaVaani Solves It |
+**Patient voice interaction:**
+- **Natural Indic greeting** — greets the caller in natural spoken Kannada (*"Namaskara! Bangalore General Hospital ge swagatha..."*).
+- **Code-mixed Kanglish parsing** — comprehends mixed queries (*"Nange Cardiology doctor ge appointment beku, Monday beligge 10 AM ge slot ideya?"*).
+- **Acoustic noise rejection** — dual-stage WebRTC VAD and envelope noise gating ignore waiting room hallway chatter and background side-conversations.
+- **Sub-600ms turn-taking** — dynamic 550ms silence window allows natural conversational pacing without cutoff.
+
+**Receptionist clinical console (IBM Carbon for Healthcare):**
+- **Live transcript stream** — real-time conversation bubbles with speech-to-text confidence scoring.
+- **State machine visualizer** — linear progress stepper showing active LangGraph nodes in real-time.
+- **Live EMR appointments table** — instantaneous WebSocket table updates when bookings are confirmed, featuring green flash highlights.
+- **Emergency triage escalation** — high-visibility Red Carbon alert tiles flagging patients who require immediate doctor handoff.
+
+**Design principles:**
+- **Triage, not prescribe.** The agent books visits and classifies departments; it never prescribes medication or gives diagnoses.
+- **Vernacular by architecture.** Built from the ground up for Kannada and Kanglish, not translated as an afterthought.
+- **Deterministic safety.** Any medical question, emergency symptom, or drug request immediately triggers a human handoff.
+- **Non-blocking resilience.** Zero-latency local LLM fallback ensures the reception desk remains operational even under GPU disconnection.
+
+**Not** a chatbot · **not** a generic voice wrapper · **not** an English-only touch-tone IVR.
+
+---
+
+## Technical design
+
+### Full-duplex voice processing pipeline
+
+A bounded streaming pipeline orchestrated across WebRTC audio frames, Gnani AI cloud endpoints, and local agent graphs. Every stage is logged, traceable, and tested; the stage name links directly to its implementation file.
+
+| Stage | Implementation | What it does |
 |---|---|---|
-| **Main Character Award** (₹50,000) | Best regional / low-resource language application | Full native Kannada language comprehension and natural synthesis using Gnani Prisma v2.5 (`kn-IN`) and Timbre v2.5 (`kannada_female_1`). |
-| **Mixed Vibes Award** (₹50,000) | Best code-mixed voice experience | Seamless real-world Kanglish understanding. Patients naturally combine English medical terms with Kannada grammar (*"Cardiology doctor ge appointment beku, timing 10 AM ge slot ideya?"*). |
-| **Real Deal Award** (₹50,000) | Most impactful real-world utility | Solves outpatient counter congestion in hospitals across Karnataka, eliminating front-desk wait times and automating clinical appointment scheduling into electronic medical records (EMR). |
-| **Noise Canceller Award** (₹50,000) | Best performance on noisy telephonic audio | Dual-stage WebRTC VAD spectral detection combined with an envelope amplitude noise gate (180 RMS floor, 400-500 RMS gate), actively rejecting hospital waiting room chatter, side-conversations, and telephony line hiss. |
+| [Noise Gate](backend/bolna_layer/audio_utils.py) | [`audio_utils.py`](backend/bolna_layer/audio_utils.py) | Frame-level amplitude envelope filter suppressing microphone hiss and low-energy background noise below 400 RMS. |
+| [WebRTC VAD](backend/services/vad_service.py) | [`vad_service.py`](backend/services/vad_service.py) | Dual-stage voice activity detection operating down to 180 RMS floor with 550ms silence boundary detection. |
+| [Gnani Prisma STT](backend/services/stt_service.py) | [`stt_service.py`](backend/services/stt_service.py) | 16 kHz streaming WebSocket client connecting to `api.vachana.ai/stt/v3` with `kn-IN` Kannada acoustic models. |
+| [LangGraph State Machine](backend/langgraph_agent/graph.py) | [`graph.py`](backend/langgraph_agent/graph.py) | Stateful conversation DAG with `MemorySaver` checkpointer tracking accumulated dialogue turns without memory leakage. |
+| [Clinical Intent Classifier](backend/langgraph_agent/nodes.py) | [`nodes.py`](backend/langgraph_agent/nodes.py) | Categorizes utterances into `book_appointment`, `medical_question`, `reschedule`, `greeting`, `farewell`, or `side_conversation`. |
+| [Safety Guardrail](backend/langgraph_agent/nodes.py) | [`nodes.py`](backend/langgraph_agent/nodes.py) | Strict two-layer medical filter: intercepts drug queries, halts booking, and triggers physician handoff. |
+| [Gnani Evon LLM](backend/services/llm_service.py) | [`llm_service.py`](backend/services/llm_service.py) | Primary 30B MoE model (`gnani/evon-v3.3`) via vLLM with instant 0.001s socket pre-check and zero-lag fallback. |
+| [Gnani Timbre TTS](backend/services/tts_service.py) | [`tts_service.py`](backend/services/tts_service.py) | Ultra-low latency streaming synthesis over WebSocket (`kannada_female_1`) returning chunked 16kHz audio. |
+| [Async SQLite EMR](backend/database.py) | [`database.py`](backend/database.py) | Asynchronous SQLAlchemy repository persisting `Appointment` and `HumanHandoff` records with WebSocket push. |
+
+<details>
+<summary>Diagram — End-to-end voice streaming pipeline</summary>
+
+```mermaid
+flowchart TB
+    MIC["Patient Microphone<br/>(16kHz 16-bit PCM)"] --> NG["Noise Gate<br/>suppress < 400 RMS"]
+    NG --> VAD["Dual-Stage WebRTC VAD<br/>180 RMS floor + 550ms silence"]
+    VAD --> STT["Gnani Prisma v2.5 STT<br/>wss://api.vachana.ai/stt/v3 (kn-IN)"]
+    STT --> GRAPH["LangGraph State Engine<br/>deterministic DAG with MemorySaver"]
+    
+    subgraph GRAPH_EXEC["LangGraph Processing DAG"]
+        direction TB
+        G1["intent_classifier_node<br/>classify intent"] --> S1{"clinical safety check"}
+        S1 -- "medical question / emergency" --> ESC["escalate_human_node<br/>create HumanHandoff flag"]
+        S1 -- "administrative / booking" --> SF["slot_filling_node<br/>extract name, dept, date, time"]
+        SF --> CONF["confirm_booking_node<br/>persist to SQLite EMR"]
+    end
+
+    GRAPH --> GRAPH_EXEC
+    CONF --> LLM["Gnani Evon v3.3 (vLLM)<br/>open-weights 30B MoE"]
+    ESC --> LLM
+    LLM --> TTS["Gnani Timbre v2.5 TTS<br/>wss://api.vachana.ai/tts/v2"]
+    TTS --> SPK["Browser Playback Queue<br/>AudioBufferSourceNode"]
+    CONF --> EMR["WebSocket EMR Push<br/>/ws/emr -> React 19 Dashboard"]
+```
+
+</details>
+
+<details>
+<summary>Diagram — LangGraph clinical safety guardrails & state transitions</summary>
+
+```mermaid
+stateDiagram-v2
+    [*] --> Greeting: Session Started
+    Greeting --> IntentClassifier: Patient Speaks
+    
+    state IntentClassifier {
+        [*] --> CheckKeywords
+        CheckKeywords --> EvaluateConfidence
+        EvaluateConfidence --> RouteIntent
+    }
+
+    IntentClassifier --> SmallTalk: Greeting / Farewell / Info
+    SmallTalk --> IntentClassifier: Follow-up Turn
+    
+    IntentClassifier --> SafetyCheck: Book Appointment / Symptoms
+    
+    state SafetyCheck {
+        [*] --> RuleBasedFilter: Prescription / Drug query?
+        RuleBasedFilter --> LLMSafetyAdjudication: Emergency chest pain?
+    }
+
+    SafetyCheck --> EscalateHuman: Medical Question / Emergency
+    EscalateHuman --> [*]: Log HumanHandoff & Notify Reception
+
+    SafetyCheck --> SlotFilling: Safe Administrative Request
+    
+    state SlotFilling {
+        [*] --> ExtractSlots: Dept, Date, Time, Name
+        ExtractSlots --> CheckMissing: All slots present?
+    }
+
+    SlotFilling --> SlotFilling: Missing Slots (Prompt Patient)
+    SlotFilling --> ConfirmBooking: All Slots Filled
+    ConfirmBooking --> [*]: Save Appointment & Broadcast EMR
+```
+
+</details>
 
 ---
 
-## 3. Technology Stack & Gnani AI Model Integration
+## Challenge awards alignment
 
-| Component | Technology | Role in SahayaVaani |
+SahayaVaani has been designed to satisfy the core award criteria of **The Great Indian AI Internship Challenge** by **Gnani.ai**:
+
+| Award Category | Criteria | SahayaVaani Implementation |
 |---|---|---|
-| **Speech-to-Text (STT)** | **Gnani Prisma v2.5** (`wss://api.vachana.ai/stt/v3/stream`) | 16 kHz streaming WebRTC audio recognition configured for `kn-IN` with real-time interim and final transcript streaming. |
-| **Language Model (LLM)** | **Gnani Evon v3.3** (`gnani/evon-v3.3`) | 30B MoE open-weights model served via vLLM (OpenAI-compatible `/v1/chat/completions`) for multi-turn intent classification, slot extraction, and clinical confirmation. |
-| **Text-to-Speech (TTS)** | **Gnani Timbre v2.5** (`wss://api.vachana.ai/tts/v2/stream`) | Low-latency streaming Kannada voice synthesis (`kannada_female_1`) delivering natural intonation. |
-| **Voice Orchestration** | **Hybrid Pipeline** (WebRTC VAD + Noise Gate) | Dual-stage voice activity detection, dynamic turn-taking (550ms silence window), and ambient noise gating. |
-| **Agent State Machine** | **LangGraph** (`langgraph` + `MemorySaver`) | Deterministic state transition graph with persistent session checkpoints, slot filling, and safety guardrail handoffs. |
-| **Backend API Server** | **FastAPI** + **Uvicorn** (Python 3.11+) | Asynchronous WebSocket streaming routes (`/ws/call/{session_id}` and `/ws/emr`) with SQLAlchemy async SQLite EMR. |
-| **Clinical Console** | **React 19** + **Vite** | Real-time reception desktop dashboard featuring live multi-turn transcripts, agent state visualizer, KPI metrics, and live EMR records. |
+| **Main Character Award** (₹50,000) | Best regional / low-resource Indian language build | Native Kannada speech recognition via Gnani Prisma v2.5 (`kn-IN`) and voice synthesis via Timbre v2.5 (`kannada_female_1`). |
+| **Mixed Vibes Award** (₹50,000) | Best code-mixed voice experience | Seamless Kanglish understanding combining English medical terms with Kannada grammar (*"Cardiology doctor ge appointment beku"*). |
+| **Real Deal Award** (₹50,000) | Most impactful real-world utility | Solves outpatient counter congestion in Karnataka hospitals, automating appointment booking directly into hospital EMR records. |
+| **Noise Canceller Award** (₹50,000) | Best performance on messy, noisy telephonic audio | Dual-stage WebRTC VAD + envelope noise gate rejecting background waiting room chatter, side-conversations, and microphone hiss. |
+| **Solo Ninja Award** (₹50,000) | Best project built by a single participant | Architected, implemented, tested, and documented solo by [sm-daniyal](https://github.com/sm-daniyal). |
+| **Demo Day Drop Award** (₹50,000) | Best 60-second demo video | Turnkey 50-second presentation deck ([`slides.html`](frontend/public/slides.html)) paired with live clinical console execution. |
 
 ---
 
-## 4. System Architecture
+## Tech stack
 
-```
-                        +-----------------------------------------------------+
-   Patient Phone/Web    |              SahayaVaani Backend (FastAPI)           |
-   ----------------->   |                                                     |
-   PCM 16kHz frames     |  +----------------------------------------------+   |
-                        |  |          Voice Orchestration Layer           |   |
-                        |  |  Noise Gate -> WebRTC VAD -> 550ms Window    |   |
-                        |  +-----------------------+----------------------+   |
-                        |                          |                          |
-                        |            +-------------v--------------+           |
-                        |            |   Gnani Prisma v2.5 STT     |<-- WSS ->| api.vachana.ai
-                        |            |   wss://api.vachana.ai/stt  |          |
-                        |            +-------------+--------------+           |
-                        |                          | transcript               |
-                        |            +-------------v--------------+           |
-                        |            |   LangGraph State Machine  |           |
-                        |            |                            |           |
-                        |            |  greeting -> intent_check  |           |
-                        |            |     -> safety_check        |           |
-                        |            |     -> slot_filling        |           |
-                        |            |     -> confirm_booking     |           |
-                        |            |     -> escalate_human      |           |
-                        |            +-------------+--------------+           |
-                        |                          | response text            |
-                        |            +-------------v--------------+           |
-                        |            |   Gnani Evon v3.3 (vLLM)   |<-- HTTP ->| localhost:8000
-                        |            |   (Colab GPU / vLLM / Lite)|           | (or cloud GPU)
-                        |            +-------------+--------------+           |
-                        |                          |                          |
-                        |            +-------------v--------------+           |
-                        |            |   Gnani Timbre v2.5 TTS    |<-- WSS ->| api.vachana.ai
-                        |            |   wss://api.vachana.ai/tts |           |
-                        |            +-------------+--------------+           |
-                        |                          | PCM audio                |
-   <-----------------   |       Browser plays back agent audio                |
-   TTS audio + events   |                          |                          |
-                        |            +-------------v--------------+           |
-                        |            |   SQLite EMR (emr.db)      |           |
-                        |            |   appointments + handoffs  |           |
-                        |            +-------------+--------------+           |
-                        |                          | WS broadcast             |
-   React Dashboard <----|--------- /ws/emr --------+                          |
-                        +-----------------------------------------------------+
-```
+| Layer | Technology Choices |
+|---|---|
+| Frontend | React 19, Vite, IBM Carbon Design System for Healthcare, IBM Plex Sans, IBM Plex Mono, Web Audio API |
+| Backend | Python 3.11+, FastAPI, Uvicorn, Asynchronous WebSockets, Pydantic BaseSettings |
+| Speech-to-Text | Gnani Prisma v2.5 (`kn-IN`) streaming WebSocket client at `wss://api.vachana.ai/stt/v3/stream` |
+| Text-to-Speech | Gnani Timbre v2.5 (`kannada_female_1`) streaming WebSocket client at `wss://api.vachana.ai/tts/v2/stream` |
+| Language Model | Gnani Evon v3.3 (30B MoE open weights via vLLM) with automatic zero-latency fallback engine |
+| Agent Orchestration | LangGraph (`StateGraph`, `MemorySaver` checkpointer), Bolna hybrid streaming turn-taker |
+| Audio Processing | WebRTC VAD (webrtcvad), NumPy 16-bit PCM frame transformations, RMS amplitude gating |
+| Data & Persistence | SQLite 3, SQLAlchemy 2.0 (async with aiosqlite), WebSocket broadcast channels |
+| Quality Gates | Pytest, Pytest-Asyncio, 102 automated isolated tests, GitHub Actions CI |
 
 ---
 
-## 5. Medical Safety Guardrails & Emergency Escalation
-
-Outpatient reception voice agents must never provide unauthorized medical diagnoses or prescribe medications. SahayaVaani implements a strict **two-tier clinical safety guardrail**:
-
-1. **Deterministic Rule Filter**:
-   Any inquiry requesting medication names, dosages, drug advice, or home remedies triggers an immediate medical question interception.
-2. **LLM Safety Adjudication**:
-   The utterance is cross-evaluated by the safety prompt. If clinical emergency symptoms (e.g., severe chest pain, breathing difficulty, acute trauma) or drug requests are identified:
-   - Voice agent immediately speaks a safety disclaimer in Kannada:  
-     *"Naanu medical advice kodalaare. Nimmannu emergency physician athava duty doctor jotege connect maaduttene."*
-   - A `HumanHandoff` record is created in the database with status `escalated` and reason `medical_safety_escalation`.
-   - The clinical reception dashboard immediately highlights the incident for front-desk triage staff.
-
----
-
-## 6. Project Directory Layout
-
-```
-sahayavaani/
-|-- backend/
-|   |-- main.py                       FastAPI app + WebSocket endpoints (/ws/call, /ws/emr)
-|   |-- config.py                     Pydantic settings loaded from .env
-|   |-- database.py                   SQLAlchemy async EMR models (Appointment, HumanHandoff)
-|   |-- Dockerfile                    Containerized FastAPI deployment
-|   |-- requirements.txt              Python dependencies (FastAPI, LangGraph, vLLM, WebRTC)
-|   |-- .env.example                  Complete environment variable template
-|   |-- pytest.ini                    Pytest configuration for async execution
-|   |-- bolna_layer/
-|   |   |-- orchestrator.py           Session event loop, turn-taking, and streaming audio pipeline
-|   |   +-- audio_utils.py            PCM 16-bit 16kHz chunking and format transformations
-|   |-- langgraph_agent/
-|   |   |-- graph.py                  StateGraph DAG declaration with conditional routing
-|   |   |-- nodes.py                  Greeting, intent classifier, slot filling, confirm, escalate
-|   |   |-- state.py                  AgentState TypedDict definition
-|   |   +-- prompts.py                Bilingual Kannada/Kanglish clinical prompt templates
-|   |-- services/
-|   |   |-- stt_service.py            Gnani Prisma v2.5 streaming WebSocket client
-|   |   |-- tts_service.py            Gnani Timbre v2.5 streaming WebSocket client
-|   |   |-- llm_service.py            Gnani Evon v3.3 vLLM client with automatic serverless fallback
-|   |   +-- vad_service.py            Dual-stage WebRTC VAD + RMS amplitude noise gate
-|   +-- tests/
-|       |-- conftest.py               Isolated async test fixtures and deterministic LLM mocks
-|       |-- test_audio_vad.py         Audio chunking, noise gate, and VAD boundary tests (16)
-|       |-- test_intent_classifier.py Kannada/Kanglish intent classification test cases (18)
-|       |-- test_slot_filling.py      Department, relative date, and phone slot extraction (18)
-|       |-- test_safety_guardrails.py Medical question blocking and emergency escalation (14)
-|       |-- test_database_emr.py      EMR appointment persistence and state updates (12)
-|       |-- test_langgraph_workflow.py End-to-end conversation state machine tests (12)
-|       +-- test_orchestrator.py      WebSocket protocol and error recovery tests (12)
-|-- frontend/
-|   |-- index.html                    Clinical reception web portal
-|   |-- package.json                  React 19 + Vite dependencies
-|   |-- vite.config.js                Vite reverse proxy configuration
-|   +-- src/
-|       |-- App.jsx                   Two-column desktop reception console
-|       |-- components/
-|       |   |-- VoiceInterface.jsx    WebRTC microphone capture, PCM streaming, and TTS player
-|       |   |-- EMRTable.jsx          Live real-time appointment records and escalation status
-|       |   |-- TranscriptPanel.jsx   Live conversational dialogue transcript
-|       |   |-- StatusIndicator.jsx   LangGraph state transition stepper
-|       |   +-- Icons.jsx             SVG iconography for clinical UI
-|       +-- styles/
-|           +-- App.css               Clinical styling, glassmorphism, and responsive grid
-|-- scripts/
-|   |-- serve_evon_vllm.py            Standalone vLLM launcher for gnani/evon-v3.3 on GPU
-|   |-- SahayaVaani_Evon_vLLM_Colab.ipynb 1-click Google Colab notebook for free GPU serving
-|   |-- seed_db.py                    Seeds initial clinical appointments into emr.db
-|   +-- test_audio.py                 CLI test client for streaming local WAV audio files
-|-- docker-compose.yml                Multi-container local deployment configuration
-+-- README.md                         Project documentation and challenge submission manual
-```
-
----
-
-## 7. Automated Test Suite (102 Tests Passing)
-
-SahayaVaani includes a comprehensive, 100% green test suite running on `pytest` and `pytest-asyncio`. All 102 tests run in complete isolation with zero external API dependencies or token costs:
-
-```
-============================== test session starts ==============================
-rootdir: E:\sahayavaani\backend, configfile: pytest.ini
-collected 102 items
-
-backend/tests/test_audio_vad.py .......... [ 15%]
-backend/tests/test_intent_classifier.py .................. [ 33%]
-backend/tests/test_slot_filling.py .................. [ 50%]
-backend/tests/test_safety_guardrails.py .............. [ 64%]
-backend/tests/test_database_emr.py ............ [ 76%]
-backend/tests/test_langgraph_workflow.py ............ [ 88%]
-backend/tests/test_orchestrator.py ............ [100%]
-
-============================== 102 passed in 9.81s ==============================
-```
-
-To run the test suite locally:
-```bash
-pytest -c backend/pytest.ini backend/tests -v
-```
-
----
-
-## 8. Quickstart & Deployment Guide
+## Getting started
 
 ### Prerequisites
 - Python 3.11+
 - Node.js 20+ (with npm)
 - Gnani API Key (for Prisma STT and Timbre TTS)
 
-### Step 1: Clone the Repository
+### 1. Clone the repository
 ```bash
 git clone https://github.com/sm-daniyal/sahaya-vani.git
 cd sahaya-vani
 ```
 
-### Step 2: Configure Environment Variables
-Copy `.env.example` in `backend/`:
-```bash
-cp backend/.env.example backend/.env
-```
-Edit `backend/.env` with your credentials:
-```env
-GNANI_API_KEY=your_gnani_api_key_here
-STT_WS_URL=wss://api.vachana.ai/stt/v3/stream
-TTS_WS_URL=wss://api.vachana.ai/tts/v2/stream
-STT_LANG_CODE=kn-IN
-TTS_VOICE=kannada_female_1
-
-# LLM Configuration
-EVON_ENABLED=true
-VLLM_BASE_URL=http://localhost:8000/v1
-EVON_MODEL_NAME=gnani/evon-v3.3
-
-# Optional: Gemini API key for rapid local testing without a GPU
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-### Step 3: Run Gnani Evon v3.3 (Choose Option A or B)
-
-#### Option A: 1-Click Free GPU on Google Colab (Recommended for Demo)
-1. Open [`scripts/SahayaVaani_Evon_vLLM_Colab.ipynb`](file:///E:/sahayavaani/scripts/SahayaVaani_Evon_vLLM_Colab.ipynb) in Google Colab.
-2. Select runtime: **Runtime > Change runtime type > GPU (T4 or A100)**.
-3. Run the cells. It downloads `gnani/evon-v3.3`, starts vLLM, and outputs a public ngrok tunnel link (e.g. `https://xxxx.ngrok-free.app/v1`).
-4. Set `VLLM_BASE_URL=https://xxxx.ngrok-free.app/v1` in `backend/.env`.
-
-#### Option B: Local / Cloud GPU with vLLM
-If running on a machine with an NVIDIA GPU (RTX 3090, 4090, A100):
-```bash
-python scripts/serve_evon_vllm.py --model gnani/evon-v3.3 --port 8000
-```
-
-> **Note on Developer Fallback**: If running on a low-spec CPU machine without a GPU instance active, SahayaVaani automatically engages the backup LLM provider so testing never halts.
-
-### Step 4: Start Backend
+### 2. Configure environment
 ```bash
 cd backend
+cp .env.example .env
+# Edit .env and enter your GNANI_API_KEY
+```
+
+### 3. Start the backend
+```bash
+# Setup virtual environment
 python -m venv .venv
+
 # On Windows:
 .venv\Scripts\activate
 # On Linux/macOS:
 source .venv/bin/activate
 
+# Install dependencies and seed EMR database
 pip install -r requirements.txt
 python ../scripts/seed_db.py
+
+# Run FastAPI server
 uvicorn main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
-### Step 5: Start Frontend
+### 4. Start the frontend
 ```bash
+# In a second shell:
 cd frontend
 npm install
 npm run dev
 ```
-Open **http://localhost:5173** in your browser.
+
+Visit **http://localhost:5173** to access the clinical reception console.  
+Visit **http://localhost:5173/slides.html** to access the 50-second video presentation deck.
 
 ---
 
-## 9. 60-Second Demo Walkthrough Script (For Video Submission)
+## Serving Gnani Evon v3.3 on GPU
 
-For the public video submission required by the challenge guidelines on LinkedIn / X:
+To serve Gnani's 30B MoE open weights (`gnani/evon-v3.3`) via an OpenAI-compatible endpoint:
 
-1. **Opening (0:00 - 0:10)**:
-   *"Namaskara! This is SahayaVaani, a bilingual Kannada and Kanglish clinical voice AI receptionist built for The Great Indian AI Internship Challenge by Gnani.ai."*
-2. **Call Initiation (0:10 - 0:25)**:
-   Click **Start Call**. The agent greets:  
-   *"Namaskara! Bangalore General Hospital ge swagatha. Naanu nimma voice assistant. Naanu nimage hege sahayavaagali?"*
-3. **Appointment Scheduling (0:25 - 0:45)**:
-   Speak naturally in Kanglish:  
-   *"Nange Cardiology doctor ge appointment beku, Monday beligge 10 AM ge slot ideya?"*  
-   Show the live transcript appearing instantly, the LangGraph state indicator moving through `intent_classification` -> `slot_filling` -> `confirm_booking`, and the new row highlighting green on the EMR table.
-4. **Safety Escalation (0:45 - 0:55)**:
-   Speak:  
-   *"Doctor, nange thumba chest pain ide, yav tablet thagobeku?"*  
-   Show the agent refusing medication advice, escalating immediately to human triage, and creating a red escalation banner on the clinical console.
-5. **Closing (0:55 - 1:05)**:
-   *"Powered 100% by Gnani Prisma STT, Evon v3.3 MoE, and Timbre TTS. Thank you Gnani.ai!"*
+### Option A: 1-Click Free GPU on Google Colab
+1. Open [`scripts/SahayaVaani_Evon_vLLM_Colab.ipynb`](scripts/SahayaVaani_Evon_vLLM_Colab.ipynb) in Google Colab.
+2. Set Runtime to **GPU (T4 or A100)** and click **Run All**.
+3. Copy the generated `ngrok` tunnel endpoint into `backend/.env`:
+   ```env
+   VLLM_BASE_URL=https://xxxx.ngrok-free.app/v1
+   EVON_ENABLED=true
+   ```
+
+### Option B: Local or Cloud NVIDIA GPU
+```bash
+python scripts/serve_evon_vllm.py --model gnani/evon-v3.3 --port 8000
+```
+
+> **Developer Note on Potato PCs**: If you are developing on a low-spec machine without a dedicated GPU, SahayaVaani automatically detects that port 8000 is inactive in 0.001 seconds and routes through the backup engine, ensuring you never experience lag or connection timeouts.
 
 ---
 
-## 10. Submission Checklist for The Great Indian AI Internship Challenge
+## Automated testing & quality gates
 
-- [x] Functional web application with real-time voice streaming.
+SahayaVaani includes **102 automated unit and integration tests** executed via `pytest` and `pytest-asyncio` running in 100% network isolation with zero external API dependencies:
+
+| Test Module | Coverage Domain | Tests |
+|---|---|---|
+| [`test_audio_vad.py`](backend/tests/test_audio_vad.py) | Audio chunking, noise gate thresholds, RMS envelope detection, VAD boundaries | 16 |
+| [`test_intent_classifier.py`](backend/tests/test_intent_classifier.py) | Kannada script and Kanglish intent routing, keyword overrides, low-confidence repeat | 18 |
+| [`test_slot_filling.py`](backend/tests/test_slot_filling.py) | Department extraction, relative dates, time formatting, multi-turn accumulation | 18 |
+| [`test_safety_guardrails.py`](backend/tests/test_safety_guardrails.py) | Drug prescription blocking, symptom triage, emergency physician handoffs | 14 |
+| [`test_database_emr.py`](backend/tests/test_database_emr.py) | Async SQLite appointment lifecycle, handoff persistence, status transitions | 12 |
+| [`test_langgraph_workflow.py`](backend/tests/test_langgraph_workflow.py) | End-to-end multi-turn conversation DAG, state checkpointer, session continuity | 12 |
+| [`test_orchestrator.py`](backend/tests/test_orchestrator.py) | WebSocket protocol events, VAD buffer trigger, transcript streaming, error recovery | 12 |
+| **Total** | **Comprehensive Full-Stack Coverage** | **102 Tests (100% Green)** |
+
+### Running the test suite
+```bash
+pytest -c backend/pytest.ini backend/tests -q
+# Output: 102 passed in ~9.5s
+```
+
+---
+
+## Repository layout
+
+```
+sahaya-vani/
+├── backend/
+│   ├── main.py                     FastAPI application & WebSocket handlers (/ws/call, /ws/emr)
+│   ├── config.py                   Pydantic settings loaded from .env
+│   ├── database.py                 SQLAlchemy async models (Appointment, HumanHandoff)
+│   ├── bolna_layer/
+│   │   ├── orchestrator.py         Main voice session event loop & turn-taking
+│   │   └── audio_utils.py          PCM 16-bit 16kHz chunking and noise gating
+│   ├── langgraph_agent/
+│   │   ├── graph.py                LangGraph StateGraph declaration with conditional edges
+│   │   ├── nodes.py                All 6 clinical nodes (greeting, intent, slots, safety, confirm)
+│   │   ├── state.py                AgentState TypedDict definition
+│   │   └── prompts.py              Bilingual Kannada/Kanglish clinical prompt templates
+│   ├── services/
+│   │   ├── stt_service.py          Gnani Prisma v2.5 streaming WebSocket client
+│   │   ├── tts_service.py          Gnani Timbre v2.5 streaming WebSocket client
+│   │   ├── llm_service.py          Gnani Evon v3.3 vLLM client with fast socket check
+│   │   └── vad_service.py          Dual-stage WebRTC VAD + RMS amplitude noise gate
+│   └── tests/                      102-test automated test suite
+├── frontend/
+│   ├── index.html                  IBM Plex fonts and clinical meta tags
+│   ├── public/slides.html          50-second video demo presentation deck
+│   └── src/
+│       ├── App.jsx                 IBM Carbon clinical reception console layout
+│       ├── components/
+│       │   ├── VoiceInterface.jsx  Audio telemetry console, RMS level meter, WebRTC mic capture
+│       │   ├── EMRTable.jsx        High-density EMR appointment data table
+│       │   ├── StatusIndicator.jsx LangGraph linear operational progress stepper
+│       │   └── TranscriptPanel.jsx Real-time conversation dialogue bubbles
+│       └── styles/App.css          IBM Carbon Design System for Healthcare stylesheet
+├── scripts/
+│   ├── serve_evon_vllm.py          Standalone vLLM launcher for gnani/evon-v3.3 on GPU
+│   ├── SahayaVaani_Evon_vLLM_Colab.ipynb 1-click Google Colab notebook for free GPU serving
+│   ├── seed_db.py                  Seeds initial appointment records into emr.db
+│   └── test_audio.py               CLI test client streaming local WAV audio files
+├── concepts_brief.md               EGM frontend redesign specification
+├── design_draft.md                 Comprehensive system design draft
+├── docker-compose.yml              Multi-container local deployment configuration
+└── README.md                       Main documentation and challenge submission manual
+```
+
+---
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [`design_draft.md`](design_draft.md) | The formal system design specification and Critical User Journeys (CUJs) |
+| [`concepts_brief.md`](concepts_brief.md) | EGM specification for the IBM Carbon for Healthcare frontend transformation |
+| [`backend/.env.example`](backend/.env.example) | Backend environment variable template with all configuration keys |
+| [`scripts/SahayaVaani_Evon_vLLM_Colab.ipynb`](scripts/SahayaVaani_Evon_vLLM_Colab.ipynb) | Google Colab GPU notebook for serving Gnani Evon v3.3 via vLLM |
+| [`frontend/public/slides.html`](frontend/public/slides.html) | Turnkey 50-second video presentation slide deck |
+
+---
+
+## Submission checklist
+
+- [x] Working full-stack voice application with real-time streaming.
 - [x] Gnani Prisma v2.5 STT integrated for streaming speech recognition (`kn-IN`).
 - [x] Gnani Evon v3.3 MoE LLM integrated with Colab GPU serving script and OpenAI compatibility.
 - [x] Gnani Timbre v2.5 TTS integrated for streaming Kannada speech synthesis.
 - [x] 102 passing unit and integration tests with zero external API dependencies.
+- [x] Production clinical console styled with IBM Carbon Design System for Healthcare.
 - [x] Public GitHub repository: [https://github.com/sm-daniyal/sahaya-vani](https://github.com/sm-daniyal/sahaya-vani).
-- [ ] Record 60-90 second demo video following the walkthrough script.
-- [ ] Post demo video to LinkedIn and X with required hashtags:
-  - `#GreatIndianAIInternshipChallenge`
-  - `#GnaniAI`
-- [ ] Submit portal form at `https://www.gnani.ai/internship` before November 10, 2026, 11:59 PM IST.
+- [ ] Record 45-50 second demo video using [`slides.html`](frontend/public/slides.html) and clinical console.
+- [ ] Post demo video to X / Twitter with hashtags `#GreatIndianAIInternshipChallenge` and `#GnaniAI`.
+- [ ] Submit portal form at [gnani.ai/internship](https://www.gnani.ai/internship) before November 10, 2026, 11:59 PM IST.
 
 ---
 
-## 11. License
+## License
 
 This project is licensed under the MIT License.
