@@ -384,7 +384,6 @@ sahaya-vani/
 | [`SUBMISSION.md`](SUBMISSION.md) | Challenge deliverables checklist and verification manual |
 | [`design_draft.md`](design_draft.md) | The formal system design specification and Critical User Journeys (CUJs) |
 | [`concepts_brief.md`](concepts_brief.md) | Specification for the IBM Carbon for Healthcare frontend transformation |
-| [`consolidated_review_report.md`](consolidated_review_report.md) | Master consolidated audit report across all four EGM review rubrics |
 | [`backend/.env.example`](backend/.env.example) | Backend environment variable template with all configuration keys |
 | [`scripts/SahayaVaani_Evon_vLLM_Colab.ipynb`](scripts/SahayaVaani_Evon_vLLM_Colab.ipynb) | Google Colab GPU notebook for serving Gnani Evon v3.3 via vLLM |
 | [`frontend/public/slides.html`](frontend/public/slides.html) | Turnkey 50-second video presentation slide deck |
