@@ -20,15 +20,39 @@ from langgraph_agent.prompts import (
 logger = logging.getLogger(__name__)
 
 
-class EvonLLMService:  # Name kept the same so the rest of your code doesn't break
+class EvonLLMService:
+    """
+    LLM Brain for SahayaVaani.
+    Primary engine: Gnani Evon v3.3 (via local vLLM or GPU Colab/cloud endpoint).
+    Backup engine: Gemini 2.0 Flash Lite (for rapid development or serverless fallback).
+    """
+
     def __init__(self):
-        # Point to Google's OpenAI-compatible endpoint
-        self._client = AsyncOpenAI(
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-            api_key=settings.gemini_api_key,
-            timeout=20.0,
-        )
-        self._model = "models/gemini-flash-lite-latest"  # Verified working on Google OpenAI endpoint
+        self.evon_enabled = bool(settings.evon_enabled and settings.vllm_base_url)
+        self.evon_model = settings.evon_model_name
+
+        if self.evon_enabled:
+            self._evon_client = AsyncOpenAI(
+                base_url=settings.vllm_base_url,
+                api_key=settings.evon_api_key or "EMPTY",
+                timeout=settings.evon_timeout,
+            )
+            logger.info(
+                "[LLM Brain] Gnani Evon v3.3 configured at %s (model: %s)",
+                settings.vllm_base_url,
+                self.evon_model,
+            )
+        else:
+            self._evon_client = None
+
+        if settings.gemini_api_key:
+            self._gemini_client = AsyncOpenAI(
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+                api_key=settings.gemini_api_key,
+                timeout=20.0,
+            )
+        else:
+            self._gemini_client = None
 
     async def _chat(
         self,
@@ -38,32 +62,65 @@ class EvonLLMService:  # Name kept the same so the rest of your code doesn't bre
         temperature: float = 0.3,
         json_mode: bool = False,
     ) -> str:
-        kwargs: dict[str, Any] = {
-            "model":       self._model,
-            "messages":    messages,
-            "max_tokens":  max_tokens,
-            "temperature": temperature,
-        }
-        if json_mode:
-            kwargs["response_format"] = {"type": "json_object"}
-
-        models_to_try = [self._model, "models/gemini-flash-latest"]
-        last_exc = None
-        for m in models_to_try:
-            kwargs["model"] = m
+        # 1. Primary: Try Gnani Evon v3.3 first if enabled
+        if self._evon_client and self.evon_enabled:
             try:
-                response = await self._client.chat.completions.create(**kwargs)
+                evon_kwargs: dict[str, Any] = {
+                    "model": self.evon_model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                }
+                if json_mode:
+                    evon_kwargs["response_format"] = {"type": "json_object"}
+
+                response = await self._evon_client.chat.completions.create(**evon_kwargs)
                 content = response.choices[0].message.content or ""
                 result = content.strip()
                 if result:
-                    logger.info(f"[LLM Brain] Response: {result}")
+                    logger.info("[LLM Brain - Gnani Evon v3.3] Response: %s", result)
                     return result
             except Exception as exc:
-                last_exc = exc
-                logger.warning("[LLM] Model %s error: %s. Trying fallback...", m, exc)
+                logger.warning(
+                    "[LLM Brain] Gnani Evon v3.3 query failed (%s). Falling back to backup LLM...",
+                    exc,
+                )
 
-        logger.error("[LLM] All Gemini models failed: %s", last_exc)
-        raise last_exc
+        # 2. Backup: Gemini Flash via OpenAI-compatible endpoint
+        if self._gemini_client:
+            kwargs: dict[str, Any] = {
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+            if json_mode:
+                kwargs["response_format"] = {"type": "json_object"}
+
+            models_to_try = [
+                "models/gemini-flash-lite-latest",
+                "models/gemini-flash-latest",
+            ]
+            last_exc = None
+            for m in models_to_try:
+                kwargs["model"] = m
+                try:
+                    response = await self._gemini_client.chat.completions.create(**kwargs)
+                    content = response.choices[0].message.content or ""
+                    result = content.strip()
+                    if result:
+                        logger.info("[LLM Brain - Backup LLM (%s)] Response: %s", m, result)
+                        return result
+                except Exception as exc:
+                    last_exc = exc
+                    logger.warning("[LLM Brain] Model %s error: %s. Trying fallback...", m, exc)
+
+            logger.error("[LLM Brain] All backup Gemini models failed: %s", last_exc)
+            if last_exc:
+                raise last_exc
+
+        raise RuntimeError(
+            "No LLM provider available. Ensure either VLLM_BASE_URL (for Evon) or GEMINI_API_KEY is configured."
+        )
 
     def _format_history_messages(self, history: Optional[list]) -> list[dict]:
         """Convert conversation history (list of dicts or list of strings) into OpenAI messages."""

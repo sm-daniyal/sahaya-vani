@@ -38,12 +38,14 @@ class Settings(BaseSettings):
     tts_voice: str = "kannada_female_1"       # Timbre voice ID
     tts_sample_rate: int = 16000
 
-    # ── LLM — Gnani Evon v3.3 (vLLM local) ───────────────────────────────────
+    # ── LLM — Gnani Evon v3.3 (vLLM local / Colab GPU Endpoint) ───────────────
+    evon_enabled: bool = True
     vllm_base_url: str = "http://localhost:8000/v1"
     evon_model_name: str = "gnani/evon-v3.3"
+    evon_api_key: str = "EMPTY"
     evon_max_tokens: int = 512
     evon_temperature: float = 0.3
-    evon_timeout: float = 30.0
+    evon_timeout: float = 8.0
 
     # ── Audio ─────────────────────────────────────────────────────────────────
     sample_rate: int = 16000              # 16 kHz
