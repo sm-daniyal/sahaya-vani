@@ -83,10 +83,10 @@ The system integrates Gnani AI's sovereign speech intelligence stack:
 *   **Then**:
     1. LangGraph intent classifier routes to `safety_check`.
     2. Guardrail detects symptoms and medication query; flags intent as `medical_question`.
-    3. Graph immediately routes to `escalate_human_node`, bypassing scheduling.
-    4. Database flags session for emergency human handoff with priority `CRITICAL`.
-    5. Receptionist audio informs patient: *"Kshamisi, naanu medical advice kodalla. Emergency duty doctor hatra direct connect maadthini."*
-    6. Admin console flashes an escalated red alert badge on the EMR feed.
+    3. Graph immediately routes to `escalate_human` node, bypassing scheduling.
+    4. Database logs the session in the `human_handoffs` table with the handoff reason and conversation transcript.
+    5. Receptionist audio informs patient: *"Nanna kshame irali, naanu receptionist AI aagiddini, direct medical advice kodokke agalla. Namma specialist doctor nodoke appointment schedule maadla? Nimma hesaru heli."*
+    6. Admin console flashes an escalated red alert badge on the EMR feed while keeping the session open to schedule a doctor visit.
 
 ### CUJ 3: Ambient Side-Conversation Rejection (Noise Robustness Path)
 *   **Given**: Voice session is listening; patient is seated in a room with background talk.
@@ -122,10 +122,12 @@ flowchart TD
         TimbreTTS["Gnani Timbre v2.5 TTS (kannada_female_1)"]
     end
 
-    subgraph Intelligence ["LangGraph Cognitive State Machine"]
-        IntentNode["Intent Classifier Node"]
-        SlotNode["Slot Filling Node"]
+    subgraph Intelligence ["LangGraph Cognitive State Machine (7 Nodes)"]
+        GreetingNode["Greeting Node"]
+        IntentNode["Intent Classifier Node (Entry Point)"]
+        SmallTalkNode["Small Talk Node"]
         SafetyNode["Safety Guardrail Node"]
+        SlotNode["Slot Filling Node"]
         ConfirmNode["Booking Confirmation Node"]
         EscalateNode["Human Handoff Node"]
         Memory["MemorySaver Thread Checkpointer"]
@@ -145,9 +147,13 @@ flowchart TD
     BolnaOrch --> Intelligence
     Intelligence <--> Memory
     Intelligence <--> EvonLLM
-    Intelligence --> IntentNode --> SafetyNode
-    SafetyNode -->|Medical Query| EscalateNode
-    SafetyNode -->|Booking Query| SlotNode --> ConfirmNode
+    Intelligence --> IntentNode
+    IntentNode -->|Greeting / Small Talk| SmallTalkNode --> TimbreTTS
+    IntentNode -->|Clinical / Booking| SafetyNode
+    SafetyNode -->|Medical Advice Query| EscalateNode
+    SafetyNode -->|Appointment Scheduling| SlotNode
+    SlotNode -->|Missing Details| TimbreTTS
+    SlotNode -->|All Slots Filled| ConfirmNode
     ConfirmNode --> EMR_DB
     EscalateNode --> EMR_DB
     ConfirmNode --> TimbreTTS
@@ -196,24 +202,25 @@ flowchart TD
 ```sql
 CREATE TABLE IF NOT EXISTS appointments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    patient_name TEXT NOT NULL,
-    department TEXT NOT NULL,
-    appointment_date TEXT NOT NULL,
-    appointment_time TEXT NOT NULL,
-    phone_number TEXT,
-    session_id TEXT NOT NULL,
-    status TEXT DEFAULT 'confirmed',
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    patient_name VARCHAR(120) NOT NULL,
+    phone VARCHAR(20),
+    department VARCHAR(80) NOT NULL DEFAULT 'General',
+    date VARCHAR(20),
+    time VARCHAR(20),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    transcript TEXT,
+    session_id VARCHAR(64),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS handoff_flags (
+CREATE TABLE IF NOT EXISTS human_handoffs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    reason TEXT NOT NULL,
-    priority TEXT NOT NULL DEFAULT 'HIGH',
-    raw_transcript TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    appointment_id INTEGER REFERENCES appointments(id) ON DELETE CASCADE,
+    session_id VARCHAR(64),
+    reason TEXT,
+    transcript TEXT,
+    flagged_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -227,7 +234,17 @@ CREATE TABLE IF NOT EXISTS handoff_flags (
 | `agent_response`| Server $\to$ Client | `{"text": str, "node": str}` | Displays agent response text |
 | `tts_done` | Server $\to$ Client | `{"text": str}` | Signals completion of synthesized audio stream |
 | `state_change` | Server $\to$ Client | `{"node": str, "intent": str}` | Updates LangGraph stepper state |
-| `session_end` | Server $\to$ Client | `{"session_id": str, "appointment_id": int, "outcome": str}` | Finalizes session and triggers EMR reload |
+| `error` | Server $\to$ Client | `{"message": str}` | Reports unhandled processing errors to console |
+| `session_end` | Server $\to$ Client | `{"session_id": str, "state": dict}` | Finalizes session with full conversation state |
+
+### 3. EMR Live Feed WebSocket Protocol (`/ws/emr`)
+
+| Event Type | Direction | Payload Structure | Purpose |
+| :--- | :--- | :--- | :--- |
+| `initial_load` | Server $\to$ Client | `{"type": "initial_load", "appointments": [dict]}` | Streams full appointment backlog upon client dashboard connection |
+| `appointment_created` | Server $\to$ Client | `{"type": "appointment_created", "appointment": dict}` | Broadcasts newly confirmed appointment in real-time |
+| `ping` | Client $\to$ Server | `"ping"` | Heartbeat keep-alive check |
+| `pong` | Server $\to$ Client | `{"type": "pong"}` | Heartbeat response from server |
 
 ---
 
@@ -273,14 +290,14 @@ The test harness is implemented in Pytest using an asynchronous testing loop (`p
 
 ```text
 backend/tests/
-├── test_audio_vad.py              # 9 tests: PCM framing, envelope noise gate, VAD triggers
-├── test_database_emr.py           # 12 tests: Async SQLite CRUD, schema migrations, handoffs
+├── test_audio_vad.py              # 16 tests: PCM framing, envelope noise gate, VAD triggers
+├── test_database_emr.py           # 12 tests: Async SQLite CRUD, schema relations, handoffs
 ├── test_intent_classifier.py      # 18 tests: Kanglish intents, greetings, farewells, side-talk
-├── test_slot_filling.py           # 18 tests: Name, department, date, and time slot extraction
+├── test_langgraph_workflow.py     # 12 tests: Full state transitions, checkpointer persistence
+├── test_orchestrator.py           # 12 tests: WebSocket protocol, streaming STT, error recovery
 ├── test_safety_guardrails.py      # 14 tests: Symptom triage, medical advice escalation
-├── test_langgraph_workflow.py     # 16 tests: Full state transitions, checkpointer persistence
-└── test_orchestrator.py           # 15 tests: WebSocket protocol, streaming STT, error recovery
-Total: 102 passing tests (execution time: 8.7 seconds)
+└── test_slot_filling.py           # 18 tests: Name, department, date, and time slot extraction
+Total: 102 passing tests (execution time: 8.8 seconds)
 ```
 
 ### 2. Multi-Turn Live Verification
@@ -296,8 +313,9 @@ Total: 102 passing tests (execution time: 8.7 seconds)
 ## Deployment & Operational Considerations
 
 ### 1. Containerization (`docker-compose.yml`)
-- **Backend Service:** Python 3.11/3.12 slim container with `webrtcvad-wheels`, FastAPI, and Uvicorn on port 8080.
-- **Frontend Service:** Multi-stage Nginx container serving compiled static assets on port 80.
+- **Evon MoE Inference Service (`vllm-evon`):** Official `vllm/vllm-openai:latest` container with NVIDIA Container Toolkit serving `gnani/evon-v3.3` on port 8000.
+- **Backend Service (`sahayavaani-backend`):** Python 3.11/3.12 slim container built from `backend/Dockerfile` with `webrtcvad-wheels`, FastAPI, and Uvicorn on port 8080.
+- **Frontend Console:** React 19 / Vite development server on port 5173 with static build export for production hosting.
 
 ### 2. Continuous Integration (`.github/workflows/ci.yml`)
 - Automated GitHub Actions matrix testing on Python 3.11 and 3.12 executes all 102 Pytest assertions on every push and pull request to `main`.

@@ -9,7 +9,7 @@ A sovereign, real-time bilingual (Kannada and Kanglish) clinical voice AI recept
 ![Gnani AI](https://img.shields.io/badge/Gnani%20AI-Prisma%20%7C%20Evon%20%7C%20Timbre-0f62fe)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **Presentation deck — [full walkthrough deck](frontend/public/slides.html).** The problem, the clinical UI, and the multi-model architecture. Run locally or view the 50-second presentation flow.
+> **Presentation deck — [full walkthrough deck](frontend/public/slides.html).** The problem, the clinical UI, and the multi-model architecture. Run locally or view the 45-50 second presentation flow.
 
 Built solo by [sm-daniyal](https://github.com/sm-daniyal) for **The Great Indian AI Internship Challenge** by **Gnani.ai** ([challenge submission manual](SUBMISSION.md)) — an applied speech intelligence and healthcare sovereign AI project delivered with 102 automated tests passing.
 
@@ -248,7 +248,7 @@ npm run dev
 ```
 
 Visit **http://localhost:5173** to access the clinical reception console.  
-Visit **http://localhost:5173/slides.html** to access the 50-second video presentation deck.
+Visit **http://localhost:5173/slides.html** to access the 45-50 second video presentation deck.
 
 ### Optional: Containerized deployment
 ```bash
@@ -314,17 +314,17 @@ cd backend && pytest -q
 
 ## Repository layout
 
-```
+```text
 backend/     Python 3.11+ / FastAPI — voice engine, LangGraph agent, services, SQLite EMR
 frontend/    React 19 / Vite — IBM Carbon clinical console & demo presentation deck
 scripts/     vLLM GPU launcher, Colab notebook, EMR seeder, audio CLI test client
-docs/        System design specifications, challenge submission manual, review reports
+*.md         System specifications (design_draft.md), briefs (concepts_brief.md), submission checklist (SUBMISSION.md)
 ```
 
 <details>
 <summary>Detailed file tree</summary>
 
-```
+```text
 sahaya-vani/
 ├── backend/
 │   ├── main.py                     FastAPI application & WebSocket handlers (/ws/call/{session_id}, /ws/emr)
@@ -351,7 +351,7 @@ sahaya-vani/
 │   ├── index.html                  IBM Plex fonts and clinical meta tags
 │   ├── package.json                React 19, Vite, IBM Carbon dependencies
 │   ├── vite.config.js              Vite build and proxy configuration
-│   ├── public/slides.html          50-second video demo presentation deck
+│   ├── public/slides.html          45-50 second video demo presentation deck
 │   └── src/
 │       ├── App.jsx                 IBM Carbon clinical reception console layout
 │       ├── components/
@@ -386,7 +386,7 @@ sahaya-vani/
 | [`concepts_brief.md`](concepts_brief.md) | Specification for the IBM Carbon for Healthcare frontend transformation |
 | [`backend/.env.example`](backend/.env.example) | Backend environment variable template with all configuration keys |
 | [`scripts/SahayaVaani_Evon_vLLM_Colab.ipynb`](scripts/SahayaVaani_Evon_vLLM_Colab.ipynb) | Google Colab GPU notebook for serving Gnani Evon v3.3 via vLLM |
-| [`frontend/public/slides.html`](frontend/public/slides.html) | Turnkey 50-second video presentation slide deck |
+| [`frontend/public/slides.html`](frontend/public/slides.html) | Turnkey 45-50 second video presentation slide deck |
 
 ---
 

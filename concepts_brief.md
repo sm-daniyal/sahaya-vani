@@ -30,7 +30,7 @@ This specification details the frontend redesign of SahayaVaani from a generic p
 ### 3. High-Density Data Layout (YAGNI & Complexity Lens)
 * **Table Architecture**: Replace loose pill cards with Carbon Data Table standards: 48px row heights, uppercase `0.75rem` micro-headers with `letter-spacing: 0.05em`, subtle horizontal dividers, and fixed-width alignment.
 * **Audio Telemetry Box**: Replace cartoonish rounded microphone visuals with a technical Carbon Telemetry module: dark panel (`#262626`), real-time decibel/RMS meter in IBM Plex Mono, and linear equalizer indicators.
-* **Pipeline Stepper**: Horizontal Carbon Progress Indicator featuring numbered step badges (`01` through `06`) connected by solid Carbon lines.
+* **Pipeline Stepper**: Horizontal Carbon Progress Indicator featuring labeled SVG icons and active state highlights connected by solid Carbon lines.
 
 ---
 
@@ -40,7 +40,7 @@ This specification details the frontend redesign of SahayaVaani from a generic p
 * Import and link official Google Fonts for `IBM Plex Sans` and `IBM Plex Mono` in `index.html`.
 * Overhaul `frontend/src/styles/App.css` using IBM Carbon design tokens (colors, spacing, 2px/0px sharp corners, typography).
 * Restructure `App.jsx`, `VoiceInterface.jsx`, `EMRTable.jsx`, `StatusIndicator.jsx`, and `TranscriptPanel.jsx` to apply Carbon component semantics.
-* Retain 100% backward compatibility with backend WebSocket protocols (`/ws/call` and `/ws/emr`).
+* Retain 100% backward compatibility with backend WebSocket protocols (`/ws/call/{session_id}` and `/ws/emr`).
 * Verify zero layout shifts, verify build passes (`npm run build`), and maintain zero-emoji standard.
 
 ### Out-of-Scope Non-Goals
