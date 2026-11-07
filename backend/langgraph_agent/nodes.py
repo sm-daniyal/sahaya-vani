@@ -105,10 +105,18 @@ async def intent_classifier_node(state: AgentState) -> Dict[str, Any]:
             logger.info("[intent_classifier_node] Active booking in progress — retaining book_appointment intent")
             intent = "book_appointment"
     else:
-        # Initial turn or new intent: reject low confidence / garbled noise
+        # Initial turn or new intent: reject low confidence / garbled noise unless clear clinical/booking keywords are present
+        booking_keywords = (
+            "appointment", "ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್", "doctor", "ಡಾಕ್ಟರ್", "book", "ಬೇಕು",
+            "beku", "cardio", "fever", "pain", "hospital", "ನಾಳೆ", "today", "naale",
+            "ಯಾವಾಗ", "timing", "slot", "ಹೌದು", "yes"
+        )
+        has_keywords = any(k in tx_lower for k in booking_keywords)
+
         if len(words) < 2 and confidence >= 0.70:
             logger.info("[intent_classifier_node] Short utterance (%d words) with confidence (%.2f)", len(words), confidence)
-        elif confidence < 0.50:
+        elif not has_keywords and confidence < 0.50:
+            logger.info("[intent_classifier_node] Rejecting low confidence utterance without clinical keywords (%.2f): %r", confidence, transcript)
             return {
                 "needs_repeat":  True,
                 "response_text": REPEAT_REQUEST_TEXT,

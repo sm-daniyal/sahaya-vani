@@ -30,18 +30,35 @@ class EvonLLMService:
     def __init__(self):
         self.evon_enabled = bool(settings.evon_enabled and settings.vllm_base_url)
         self.evon_model = settings.evon_model_name
+        self._evon_available = False
 
         if self.evon_enabled:
+            # Check if local/remote endpoint is actually reachable so we never hang
+            if "localhost" in settings.vllm_base_url or "127.0.0.1" in settings.vllm_base_url:
+                try:
+                    import urllib.parse, socket
+                    parsed = urllib.parse.urlparse(settings.vllm_base_url)
+                    s = socket.create_connection((parsed.hostname or "localhost", parsed.port or 8000), timeout=0.2)
+                    s.close()
+                    self._evon_available = True
+                except Exception:
+                    self._evon_available = False
+                    logger.info("[LLM Brain] Local vLLM server is not active on %s. Routing to fast backup engine.", settings.vllm_base_url)
+            else:
+                self._evon_available = True
+
             self._evon_client = AsyncOpenAI(
                 base_url=settings.vllm_base_url,
                 api_key=settings.evon_api_key or "EMPTY",
-                timeout=settings.evon_timeout,
+                timeout=min(settings.evon_timeout, 5.0),
+                max_retries=0,
             )
-            logger.info(
-                "[LLM Brain] Gnani Evon v3.3 configured at %s (model: %s)",
-                settings.vllm_base_url,
-                self.evon_model,
-            )
+            if self._evon_available:
+                logger.info(
+                    "[LLM Brain] Gnani Evon v3.3 active at %s (model: %s)",
+                    settings.vllm_base_url,
+                    self.evon_model,
+                )
         else:
             self._evon_client = None
 
@@ -62,8 +79,8 @@ class EvonLLMService:
         temperature: float = 0.3,
         json_mode: bool = False,
     ) -> str:
-        # 1. Primary: Try Gnani Evon v3.3 first if enabled
-        if self._evon_client and self.evon_enabled:
+        # 1. Primary: Try Gnani Evon v3.3 first if enabled and available
+        if self._evon_client and self.evon_enabled and self._evon_available:
             try:
                 evon_kwargs: dict[str, Any] = {
                     "model": self.evon_model,
@@ -81,6 +98,7 @@ class EvonLLMService:
                     logger.info("[LLM Brain - Gnani Evon v3.3] Response: %s", result)
                     return result
             except Exception as exc:
+                self._evon_available = False
                 logger.warning(
                     "[LLM Brain] Gnani Evon v3.3 query failed (%s). Falling back to backup LLM...",
                     exc,
