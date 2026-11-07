@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SahayaVaani — Demo Video Presentation Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d0f12;
+      color: #ffffff;
+      font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    .deck-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 3rem 2rem;
+      opacity: 0;
+      visibility: hidden;
+      transform: scale(0.96);
+      transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: scale(1);
+    }
+
+    /* ── Slide 1: The Problem Hook ────────────────────────────────────────── */
+    .hook-headline {
+      font-size: 3.2rem;
+      font-weight: 700;
+      line-height: 1.25;
+      max-width: 900px;
+      letter-spacing: -0.02em;
+    }
+
+    .accent-bar {
+      width: 80px;
+      height: 5px;
+      background: #da1e28;
+      margin: 2rem 0;
+      border-radius: 2px;
+    }
+
+    .hook-sub {
+      font-size: 1.35rem;
+      color: #a8a8a8;
+      max-width: 750px;
+      line-height: 1.5;
+    }
+
+    /* ── Slide 2: Brand Identity ─────────────────────────────────────────── */
+    .brand-shield {
+      width: 120px;
+      height: 140px;
+      background: linear-gradient(145deg, #0f62fe, #0043ce);
+      clip-path: polygon(50% 0%, 100% 18%, 100% 75%, 50% 100%, 0% 75%, 0% 18%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(15, 98, 254, 0.4);
+    }
+
+    .kannada-glyph {
+      font-size: 4rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: -10px;
+    }
+
+    .brand-name {
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .brand-sub {
+      font-size: 1.2rem;
+      color: #c6c6c6;
+      margin-bottom: 2rem;
+    }
+
+    .hashtags {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.95rem;
+      color: #78a9ff;
+    }
+
+    /* ── Slide 3: Built on Gnani AI ──────────────────────────────────────── */
+    .tech-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 2.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .model-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 2.5rem;
+    }
+
+    .model-card {
+      padding: 1.25rem 1.5rem;
+      border-radius: 6px;
+      text-align: left;
+      border: 1px solid;
+    }
+
+    .card-prisma {
+      background: rgba(15, 98, 254, 0.12);
+      border-color: #0f62fe;
+    }
+    .card-evon {
+      background: rgba(36, 161, 72, 0.12);
+      border-color: #24a148;
+    }
+    .card-timbre {
+      background: rgba(255, 131, 43, 0.12);
+      border-color: #ff832b;
+    }
+
+    .model-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .card-prisma .model-name { color: #78a9ff; }
+    .card-evon .model-name { color: #42be65; }
+    .card-timbre .model-name { color: #ff832b; }
+
+    .model-desc {
+      font-size: 0.95rem;
+      color: #e0e0e0;
+    }
+
+    .tech-footer {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      color: #8d8d8d;
+    }
+
+    /* ── Slide 4: Closing & GitHub ───────────────────────────────────────── */
+    .closing-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      background: #044317;
+      border: 1px solid #24a148;
+      color: #42be65;
+      margin-bottom: 2rem;
+      border-radius: 4px;
+    }
+
+    .repo-link {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Controls Bar ────────────────────────────────────────────────────── */
+    .controls {
+      position: fixed;
+      bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(22, 22, 22, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #393939;
+      z-index: 100;
+    }
+
+    .ctrl-btn {
+      background: #262626;
+      border: 1px solid #525252;
+      color: #ffffff;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .ctrl-btn:hover { background: #393939; }
+
+    .nav-indicator {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      color: #8d8d8d;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="deck-container" id="deck">
+
+    <!-- Slide 1: The Problem Hook (0-4s) -->
+    <div class="slide active" id="slide-1">
+      <h1 class="hook-headline">Indian hospital reception desks are overwhelmed every single day.</h1>
+      <div class="accent-bar"></div>
+      <p class="hook-sub">Patients wait in long queues and face severe language barriers when seeking outpatient care.</p>
+    </div>
+
+    <!-- Slide 2: The Solution Identity (4-8s) -->
+    <div class="slide" id="slide-2">
+      <div class="brand-shield">
+        <span class="kannada-glyph">ಸ</span>
+      </div>
+      <h1 class="brand-name">SahayaVaani</h1>
+      <p class="brand-sub">Sovereign Bilingual Voice AI Receptionist for Indian Healthcare</p>
+      <div class="hashtags">#GnaniAI &nbsp; #GreatIndianAIInternshipChallenge</div>
+    </div>
+
+    <!-- Slide 3: Built on Gnani AI (8-14s) -->
+    <div class="slide" id="slide-3">
+      <h2 class="tech-title">Built on Gnani AI</h2>
+      <div class="model-stack">
+        <div class="model-card card-prisma">
+          <div class="model-name">Prisma v2.5</div>
+          <div class="model-desc">Hears spoken Kannada and Kanglish in real-time over 16 kHz WebRTC</div>
+        </div>
+        <div class="model-card card-evon">
+          <div class="model-name">Evon v3.3</div>
+          <div class="model-desc">Extracts appointment slots & enforces clinical safety triage guardrails</div>
+        </div>
+        <div class="model-card card-timbre">
+          <div class="model-name">Timbre v2.5</div>
+          <div class="model-desc">Streams natural Kannada voice synthesis with sub-600ms turn-taking</div>
+        </div>
+      </div>
+      <div class="tech-footer">SahayaVaani · Bangalore General Hospital Clinical Console</div>
+    </div>
+
+    <!-- Slide 4: Closing / GitHub (45-50s) -->
+    <div class="slide" id="slide-4">
+      <div class="closing-badge">102 / 102 AUTOMATED TESTS PASSING</div>
+      <div class="repo-link">github.com/sm-daniyal/sahaya-vani</div>
+      <p class="hook-sub">Open-source sovereign voice AI built for Indian healthcare.</p>
+      <div class="hashtags" style="margin-top: 2rem;">#GnaniAI &nbsp; #GreatIndianAIInternshipChallenge</div>
+    </div>
+
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" onclick="prevSlide()">Prev</button>
+    <span class="nav-indicator" id="nav-indicator">1 / 4</span>
+    <button class="ctrl-btn" onclick="nextSlide()">Next</button>
+    <a href="/" class="ctrl-btn" style="text-decoration: none; background: #0f62fe; border-color: #0f62fe;">Open App</a>
+  </div>
+
+  <script>
+    let current = 0;
+    const slides = document.querySelectorAll('.slide');
+    const indicator = document.getElementById('nav-indicator');
+
+    function update() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === current);
+      });
+      indicator.textContent = `${current + 1} / ${slides.length}`;
+    }
+
+    function nextSlide() {
+      current = (current + 1) % slides.length;
+      update();
+    }
+
+    function prevSlide() {
+      current = (current - 1 + slides.length) % slides.length;
+      update();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+
+    document.getElementById('deck').addEventListener('click', (e) => {
+      if (!e.target.closest('.controls')) nextSlide();
+    });
+  </script>
+</body>
+</html>
