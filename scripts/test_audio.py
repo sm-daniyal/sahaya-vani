@@ -137,7 +137,7 @@ async def run_test(wav_path: Path, session_id: str, backend_ws: str):
 
         await asyncio.gather(send_audio(), receive_events())
 
-    print("\n✅ Test complete")
+    print("\n[SUCCESS] Test complete")
 
 
 def main():

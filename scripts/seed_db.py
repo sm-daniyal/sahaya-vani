@@ -59,7 +59,7 @@ async def main():
     print("Seeding appointments...")
     for data in SAMPLE_APPOINTMENTS:
         appt = await create_appointment(**data)
-        print(f"  ✓ Created appointment #{appt.id}: {appt.patient_name} → {appt.department}")
+        print(f"  [DB] Created appointment #{appt.id}: {appt.patient_name} → {appt.department}")
 
         if data["status"] == "escalated":
             handoff = await flag_for_handoff(
@@ -68,9 +68,9 @@ async def main():
                 reason="Patient asked for medical advice during call",
                 transcript=data["transcript"],
             )
-            print(f"    ⚠ Flagged for human handoff #{handoff.id}")
+            print(f"    [ALERT] Flagged for human handoff #{handoff.id}")
 
-    print("\n✅ Database seeded successfully!")
+    print("\n[SUCCESS] Database seeded successfully!")
     print(f"   Total appointments: {len(SAMPLE_APPOINTMENTS)}")
 
 

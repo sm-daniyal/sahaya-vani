@@ -362,6 +362,7 @@ sahaya-vani/
 │       │   └── Icons.jsx           IBM Carbon healthcare vector icons (Cross, Calendar, Shield, Bot)
 │       └── styles/App.css          IBM Carbon Design System for Healthcare stylesheet
 ├── scripts/
+│   ├── benchmark_vad.py            Automated latency benchmark for noise gating and VAD
 │   ├── serve_evon_vllm.py          Standalone vLLM launcher for gnani/evon-v3.3 on GPU
 │   ├── SahayaVaani_Evon_vLLM_Colab.ipynb 1-click Google Colab notebook for free GPU serving
 │   ├── seed_db.py                  Seeds initial appointment records into emr.db
@@ -385,6 +386,7 @@ sahaya-vani/
 | [`design_draft.md`](design_draft.md) | The formal system design specification and Critical User Journeys (CUJs) |
 | [`concepts_brief.md`](concepts_brief.md) | Specification for the IBM Carbon for Healthcare frontend transformation |
 | [`backend/.env.example`](backend/.env.example) | Backend environment variable template with all configuration keys |
+| [`scripts/benchmark_vad.py`](scripts/benchmark_vad.py) | Automated p95 audio gating and dual-stage VAD latency benchmark utility |
 | [`scripts/SahayaVaani_Evon_vLLM_Colab.ipynb`](scripts/SahayaVaani_Evon_vLLM_Colab.ipynb) | Google Colab GPU notebook for serving Gnani Evon v3.3 via vLLM |
 | [`frontend/public/slides.html`](frontend/public/slides.html) | Turnkey 45-50 second video presentation slide deck |
 
